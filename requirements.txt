@@ -1,0 +1,8 @@
+pandas
+torch
+matplotlib
+seaborn
+kaggle
+sklearn
+prophet
+xgboost
