@@ -1,8 +1,10 @@
-pandas
-torch
+pandas~=1.4.3
+torch~=1.12.0
 matplotlib
 seaborn
 kaggle
-sklearn
+sklearn~=0.0
 prophet
-xgboost
+xgboost~=1.6.1
+scikit-learn~=1.1.1
+catboost~=1.0.6
