@@ -27,7 +27,7 @@ def data_preprocessing(input_data: pd.DataFrame, is_train: bool) -> pd.DataFrame
     input_data['time'] = input_data.datetime.apply(lambda x: x.hour)
     input_data['weekday'] = input_data.datetime.apply(lambda x: x.weekday())
     del input_data['datetime']
-    return input_data
+    return pd.get_dummies(input_data)
 
 train = data_preprocessing(train, True)
 
@@ -49,9 +49,10 @@ ct = ColumnTransformer(
     ]
 )
 train[num_vars] = ct.fit_transform(train)
-x_train, x_val, y_train, y_val = train_test_split(train, target, test_size=0.1, random_state=1993)
+x_train, x_val, y_train, y_val = train_test_split(train, target, test_size=0.3, random_state=1993)
 data_module = EntityEmbNetDataModule(x_train, x_val, y_train, y_val, cat_vars, num_vars)
 network = EntityEmbNetModule(cat_vars, num_vars)
+
 logger = TensorBoardLogger(
                            save_dir="./logs/EntityEmbeddingNet",
                            name="regression",
@@ -65,7 +66,6 @@ early_stop_callback = EarlyStopping(
                                     verbose=True,
                                     mode='min'
                                     )
-
 
 trainer = Trainer(max_epochs=200,
                   callbacks=[early_stop_callback],

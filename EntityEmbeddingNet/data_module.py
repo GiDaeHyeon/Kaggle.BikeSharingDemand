@@ -22,7 +22,7 @@ class EntityEmbNetDataset(Dataset):
         x = self.xs.iloc[idx]
         y = self.ys[idx]
 
-        x_num = torch.Tensor([[float(x[var])] for var in self.num_vars]).long()
+        x_num = torch.Tensor([float(x[var]) for var in self.num_vars]).long()
         x_cat = {var: torch.Tensor([int(x[var])]).long() for var in list(self.cat_vars.keys())}
 
         if self.is_test:

@@ -23,7 +23,7 @@ class MLModelCollection:
         :param test_data:
         :param submit:
         """
-        self.log = get_logger('ml_modeling')
+        self.log = get_logger('./logs/ml_modeling')
         self.models = [LinearRegression(),
                        ElasticNet(),
                        Ridge(),
@@ -49,18 +49,18 @@ class MLModelCollection:
         # TODO 각 ML 모델별 parameter
         self.parameters = {
             'learning_rate': [0.1, 0.05, 0.01, 0.005, 0.001],
-            'max_depth': [3, 5, 7, 9, 11, 13, 15],
-            'l2_leaf_reg': [1, 3, 5, 7, 9]
+            'max_depth': [1, 3, 5, 7, 9, 11, 13],
+            'l2_leaf_reg': [1, 3, 5, 7, 9, 11]
         }  # CatBoostRegressor parameter
 
     def data_preprocessing(self, is_train: bool, is_one_hot: bool = True) -> pd.DataFrame:
         """
         데이터 전처리 메서드입니다.
+        Datetime 컬럼은 year, month, time, weekday 네 개 컬럼으로 나눠주고, 다른 Categorical Variable은 str로 형변환을 수행합니다.
 
-
-        :param is_train:
-        :param is_one_hot:
-        :return:
+        :param is_train: 어떤 데이터를 전처리할지 여부
+        :param is_one_hot: one-hot encoding을 수행할지 여부
+        :return: pre-processed data
         """
         if is_train:
             input_data = self.train_data
@@ -94,14 +94,26 @@ class MLModelCollection:
 
     @staticmethod
     def rmsle(y: np.array, pred: np.array) -> float:
+        """
+        RMSLE 계산 함수입니다.
+
+        :param y:
+        :param pred:
+        :return:
+        """
         log_y = np.log1p(y)
         log_pred = np.log1p(pred)
         squared_error = (log_y - log_pred) ** 2
         return np.mean(squared_error) ** .5
 
     def main(self) -> None:
+        """
+        Linear, RandomForest, GradientBoosting, XGBoost, CatBoost 등 여러 회귀 모델로 학습을 진행한 후 Validation Score가 가장
+        높은 모델을 선정합니다. 선정된 모델로 GridSearch를 수행한 후 test data에 대해 predict를 수행한 후 csv 파일로 저장합니다.
+        :return:
+        """
         data = self.data_preprocessing(is_train=True, is_one_hot=True)
-        x_train, x_val, y_train, y_val = train_test_split(data, self.target, test_size=0.3, random_state=1993)
+        x_train, x_val, y_train, y_val = train_test_split(data, self.target, test_size=0.1, random_state=1993)
         for idx, model in enumerate(self.models):
             self.log.info(f"{model.__class__.__name__} Start")
             model.fit(x_train, y_train)
@@ -116,11 +128,7 @@ class MLModelCollection:
         self.log.info(f"GridSearchCV is Started!")
         gs = GridSearchCV(estimator=best_model, param_grid=self.parameters,
                           cv=3, n_jobs=-1, scoring='neg_mean_squared_log_error')
-        gs.fit(x_train, y_train)
-        pred = gs.predict(x_val)
-        score = self.rmsle(np.expm1(y_val), np.expm1(pred))
-        self.log.info(f"The Best Parameter is {gs.best_params_}")
-        self.log.info(f"Score is {score}")
+        gs.fit(data, self.target)
 
         dummy = pd.DataFrame(columns=data.columns)
         test_data = self.data_preprocessing(is_train=False, is_one_hot=True)
@@ -134,6 +142,8 @@ class MLModelCollection:
         self.submit['count'] = pred
         self.submit.to_csv(f'./submit/{datetime.now().strftime(f"%Y%m%d_{best_model_name}")}.csv',
                            encoding='utf-8', index=False)
+        self.log.info(f'./submit/{datetime.now().strftime(f"%Y%m%d_{best_model_name}")}.csv file is saved!')
+        self.log.info('Done!')
 
 
 if __name__ == '__main__':
